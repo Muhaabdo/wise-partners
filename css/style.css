@@ -338,3 +338,4 @@ button,input,select{font:inherit}
 .lp-form__row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .lp-money{direction:ltr;text-align:right}
 @media (max-width:359px){.lp-form__row{grid-template-columns:1fr}}
+.lp-hero__media picture{display:block;width:100%;height:100%}
