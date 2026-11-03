@@ -2,8 +2,8 @@
 var CONFIG = {
   platformName: 'Wise Partners',
   domain: 'wisepartners-eg.com',
-  phone: '',          // رقم الاتصال بالصيغة الدولية بدون + — مثال: 201000000000 (يُملأ لاحقًا)
-  whatsapp: '',       // رقم الواتساب بالصيغة الدولية بدون + — مثال: 201000000000 (يُملأ لاحقًا)
+  phone: '201014935943',    // الرقم الافتراضي (الرئيسية والخصوصية والشكر). كل صفحة مشروع ليها رقمها في data-phone على الـ body
+  whatsapp: '201014935943', // نفس المبدأ: data-whatsapp على الـ body بيغلب القيمة دي
   leadsDestination: 'whatsapp', // 'whatsapp' | 'sheet'
   sheetEndpoint: '',  // Google Apps Script URL لو الوجهة sheet
   cookieBannerSeconds: 8
@@ -12,6 +12,8 @@ var CONFIG = {
 (function () {
   'use strict';
   var body = document.body;
+  if (body.getAttribute('data-phone')) CONFIG.phone = body.getAttribute('data-phone');
+  if (body.getAttribute('data-whatsapp')) CONFIG.whatsapp = body.getAttribute('data-whatsapp');
   var PAGE = {
     type: body.getAttribute('data-page-type') || 'home',
     project: body.getAttribute('data-project') || '',
