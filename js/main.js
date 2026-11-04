@@ -5,7 +5,7 @@ var CONFIG = {
   phone: '201014935943',    // الرقم الافتراضي (الرئيسية والخصوصية والشكر). كل صفحة مشروع ليها رقمها في data-phone على الـ body
   whatsapp: '201225558122', // نفس المبدأ: data-whatsapp على الـ body بيغلب القيمة دي
   leadsDestination: 'whatsapp', // 'whatsapp' | 'sheet'
-  sheetEndpoint: '',  // رابط Google Apps Script (Web app URL) لفورم تسجيل البيانات اللي بيسجل في الشيت
+  sheetEndpoint: 'https://script.google.com/macros/s/AKfycbyOAyUqGSK5Z-FpbEuyp2SMbYnuYvl1yG8N7bgieu1J0Oli4hmHkuB0Cc6ToshN8HXgkQ/exec',  // رابط Google Apps Script (Web app URL) لفورم تسجيل البيانات اللي بيسجل في الشيت
   cookieBannerSeconds: 8
 };
 
