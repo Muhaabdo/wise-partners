@@ -5,7 +5,7 @@ var CONFIG = {
   phone: '201014935943',    // الرقم الافتراضي (الرئيسية والخصوصية والشكر). كل صفحة مشروع ليها رقمها في data-phone على الـ body
   whatsapp: '201225558122', // نفس المبدأ: data-whatsapp على الـ body بيغلب القيمة دي
   leadsDestination: 'whatsapp', // 'whatsapp' | 'sheet'
-  sheetEndpoint: '',  // Google Apps Script URL لو الوجهة sheet
+  sheetEndpoint: '',  // رابط Google Apps Script (Web app URL) لفورم تسجيل البيانات اللي بيسجل في الشيت
   cookieBannerSeconds: 8
 };
 
@@ -72,28 +72,31 @@ var CONFIG = {
     ['US', '1', '🇺🇸'], ['GB', '44', '🇬🇧'], ['CA', '1', '🇨🇦'], ['DE', '49', '🇩🇪'], ['FR', '33', '🇫🇷'],
     ['IT', '39', '🇮🇹'], ['NL', '31', '🇳🇱'], ['TR', '90', '🇹🇷'], ['AU', '61', '🇦🇺']
   ];
-  var form = document.getElementById('lp-form');
-  if (form) {
-    var cc = form.querySelector('#lp-cc');
+  function fillCC(sel) {
     COUNTRIES.forEach(function (c) {
       var o = document.createElement('option');
       o.value = c[1]; o.textContent = c[2] + ' +' + c[1]; o.setAttribute('data-iso', c[0]);
-      cc.appendChild(o);
+      sel.appendChild(o);
     });
-    cc.value = '20';
+    sel.value = '20';
+  }
+  function normalize(cc, raw) {
+    var n = String(raw).replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^\d]/g, '');
+    n = n.replace(/^00/, '');
+    if (n.indexOf(cc) === 0 && n.length > cc.length + 6) n = n.slice(cc.length);
+    n = n.replace(/^0+/, '');
+    return n;
+  }
+  function validPhone(cc, n) {
+    if (cc === '20') return /^(10|11|12|15)\d{8}$/.test(n);
+    return /^\d{7,12}$/.test(n);
+  }
+  function setInvalid(field, bad) { field.classList.toggle('is-invalid', bad); }
 
-    function normalize(cc, raw) {
-      var n = String(raw).replace(/[^\d]/g, '');
-      n = n.replace(/^00/, '');
-      if (n.indexOf(cc) === 0 && n.length > cc.length + 6) n = n.slice(cc.length);
-      n = n.replace(/^0+/, '');
-      return n;
-    }
-    function validPhone(cc, n) {
-      if (cc === '20') return /^(10|11|12|15)\d{8}$/.test(n);
-      return /^\d{7,12}$/.test(n);
-    }
-    function setInvalid(field, bad) { field.classList.toggle('is-invalid', bad); }
+  var form = document.getElementById('lp-form');
+  if (form) {
+    var cc = form.querySelector('#lp-cc');
+    fillCC(cc);
 
     // money inputs: digits only, thousands separators
     function toDigits(v) { return String(v).replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).replace(/[^\d]/g, ''); }
@@ -130,7 +133,7 @@ var CONFIG = {
 
       function onceLead() {
         try { if (sessionStorage.getItem('lp_lead_sent')) return; sessionStorage.setItem('lp_lead_sent', '1'); } catch (e) {}
-        track('generate_lead', { lead_project: project });
+        track('generate_lead', { lead_project: project, lead_source: 'whatsapp_form' });
       }
 
       if (CONFIG.leadsDestination === 'whatsapp') {
@@ -152,9 +155,53 @@ var CONFIG = {
     });
   }
 
+  /* ---------- 4b. Registration form → Google Sheet ---------- */
+  var sform = document.getElementById('lp-sheet-form');
+  if (sform) {
+    var scc = sform.querySelector('.lp-cc');
+    fillCC(scc);
+    sform.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (sform.querySelector('.lp-hp input').value) return; // honeypot
+      var nameF = sform.querySelector('[data-field="name"]');
+      var phoneF = sform.querySelector('[data-field="phone"]');
+      var name = sform.name_full.value.trim();
+      var code = scc.value;
+      var num = normalize(code, sform.phone_local.value);
+      var okName = name.length >= 2, okPhone = validPhone(code, num);
+      setInvalid(nameF, !okName); setInvalid(phoneF, !okPhone);
+      if (!okName || !okPhone) return;
+
+      var fail = sform.querySelector('.lp-form__fail');
+      var btn = sform.querySelector('button[type="submit"]');
+      function showFail() {
+        btn.disabled = false; btn.textContent = btn.getAttribute('data-label');
+        if (fail) { fail.hidden = false; fail.querySelector('a').setAttribute('href', waUrl(PAGE.waText)); }
+      }
+      if (!CONFIG.sheetEndpoint) { btn.setAttribute('data-label', btn.textContent); showFail(); return; }
+      btn.disabled = true; btn.setAttribute('data-label', btn.textContent); btn.textContent = 'جارٍ الإرسال…';
+      if (fail) fail.hidden = true;
+
+      var projSel = sform.querySelector('select[name="project"]');
+      var data = {
+        time: new Date().toISOString(), name: name, phone: '+' + code + num,
+        project: projSel ? projSel.value : PAGE.project, page: location.href.split('?')[0], page_type: PAGE.type
+      };
+      PARAMS.forEach(function (p) { data[p] = getParam(p); });
+      var fd = new FormData(); for (var k in data) fd.append(k, data[k]);
+      // no-cors: Apps Script لا يرجّع CORS headers ثابتة؛ أي فشل شبكة بيروح للـ catch
+      fetch(CONFIG.sheetEndpoint, { method: 'POST', body: fd, mode: 'no-cors' })
+        .then(function () {
+          try { sessionStorage.setItem('lp_lead_project', data.project); } catch (e) {}
+          location.href = '/thank-you.html';
+        })
+        .catch(showFail);
+    });
+  }
+
   /* ---------- 5. Thank-you page (sheet destination) ---------- */
   if (PAGE.type === 'thank-you') {
-    try { if (!sessionStorage.getItem('lp_lead_sent')) { sessionStorage.setItem('lp_lead_sent', '1'); track('generate_lead'); } } catch (e) {}
+    try { if (!sessionStorage.getItem('lp_lead_sent')) { sessionStorage.setItem('lp_lead_sent', '1'); track('generate_lead', { lead_project: sessionStorage.getItem('lp_lead_project') || '', lead_source: 'sheet_form' }); } } catch (e) {}
   }
 
   /* ---------- 6. Cookie banner ---------- */
