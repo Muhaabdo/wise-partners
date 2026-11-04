@@ -3,7 +3,7 @@ var CONFIG = {
   platformName: 'Wise Partners',
   domain: 'wisepartners-eg.com',
   phone: '201014935943',    // الرقم الافتراضي (الرئيسية والخصوصية والشكر). كل صفحة مشروع ليها رقمها في data-phone على الـ body
-  whatsapp: '201014935943', // نفس المبدأ: data-whatsapp على الـ body بيغلب القيمة دي
+  whatsapp: '201225558122', // نفس المبدأ: data-whatsapp على الـ body بيغلب القيمة دي
   leadsDestination: 'whatsapp', // 'whatsapp' | 'sheet'
   sheetEndpoint: '',  // Google Apps Script URL لو الوجهة sheet
   cookieBannerSeconds: 8
